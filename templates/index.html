@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>
+      Gravitty
+    </title>
+    <link rel='stylesheet'
+          type='text/css'
+          href="{{url_for('static', filename='css/style.css')}}">
+    <link rel='stylesheet'
+          type='text/css'
+          href="{{url_for('static', filename='css/bootstrap-theme.min.css')}}">
+    <link rel='stylesheet'
+          type='text/css'
+          href="{{url_for('static', filename='css/bootstrap.min.css')}}">
+
+<body>
+    <nav class="navbar navbar-default" role="navigation">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button"
+                  class="navbar-toggle"
+                  data-toggle="collapse"
+                  data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Gravitty</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="search"></div>
+
+    <div class="container-fluid" id="screenname-table">
+      <div class="table-responsive">
+          <table class="table">
+              <tr>
+                  <th>Screen Name</th>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th>Followers</th>
+                  <th>Following</th>
+              </tr>
+              <tr>
+                  <td><span class = "id"></span></td>
+                  <td><span class = "name"></span></td>
+                  <td><span class = "description"></span></td>
+                  <td><span class = "followers_count"></span></td>
+                  <td><span class = "friends_count"></span></td>
+              </tr>
+          </table>
+      </div>
+    </div>
+
+    <div class="container-fluid" id="graph">
+      <svg id="chart" width="960" height="500"
+           viewBox="0 0 960 500" perserveAspectRatio="xMinYMid">
+      </svg>
+    </div>
+
+    <div class="container-fluid" id="community-table">
+      <div class="table-responsive">
+          <table class="table">
+              <tr>
+                  <th>Size</th>
+                  <th>Most Connected Users</th>
+                  <th>Trending Hashtags</th>
+                  <th>Most Mentioned</th>
+                  <th>Trending Topics</th>
+                  <th>Sentiment</th>
+                  <th>Density</th>
+                  <th>Modularity</th>
+              </tr>
+              <tr>
+                  <td><span class = "comm_size"></span></td>
+                  <td><span class = "most_connected"></span></td>
+                  <td><span class = "hashtags"></span></td>
+                  <td><span class = "mentioned"></span></td>
+                  <td><span class = "topics"></span></td>
+                  <td><span class = "sentiment"></span></td>
+                  <td><span class = "density"></span></td>
+                  <td><span class = "modularity"></span></td>
+              </tr>
+          </table>
+      </div>
+    </div>
+</body>
+
+<script> var graph = {{ myjson | tojson | safe }}</script>
+<script src="{{url_for('static',filename='js/d3.v3.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery-2.1.1.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/bootstrap.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/graph.js')}}"></script>

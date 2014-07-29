@@ -1,0 +1,5 @@
+.idea
+*.pyc
+gravitty/api_keys/*.txt
+gravitty/cache/*.pkl_debug
+gravitty/db/*
