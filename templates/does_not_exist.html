@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>
+      Gravitty
+    </title>
+    <link rel='stylesheet'
+          type='text/css'
+          href="{{url_for('static', filename='css/style.css')}}">
+    <link rel='stylesheet'
+          type='text/css'
+          href="{{url_for('static', filename='css/bootstrap-theme.min.css')}}">
+    <link rel='stylesheet'
+          type='text/css'
+          href="{{url_for('static', filename='css/bootstrap.min.css')}}">
+
+<body>
+    <nav class="navbar navbar-default" role="navigation">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button"
+                  class="navbar-toggle"
+                  data-toggle="collapse"
+                  data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Gravitty</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid" id="screenname-table">
+      @{{screen_name}} has not been created yet.
+    </div>
+
+</body>

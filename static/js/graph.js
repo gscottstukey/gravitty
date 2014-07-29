@@ -111,7 +111,9 @@ var chart = $("svg#chart"),
     container = chart.parent();
 
 $(window).on("resize", function() {
-    var targetWidth = container.width();
+    var targetWidth  = container.width();
+    var targetHeight = Math.min(Math.round(targetWidth / aspect), 450)
+    var targetWidth  = Math.round(targetHeight * aspect)
     chart.attr("width", targetWidth);
-    chart.attr("height", Math.round(targetWidth / aspect));
+    chart.attr("height", targetHeight);
 }).trigger("resize");

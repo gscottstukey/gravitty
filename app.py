@@ -7,17 +7,31 @@ app = Flask(__name__)
 
 
 @app.route('/')
-def show():
-    return render_template('index.html', myjson = graph_json)
+def show_default():
+    graph_json = gravitty.load('graphlabteam')
+    available = gravitty.available()
+    available.sort()
 
+    return render_template('index.html',
+                           myjson = graph_json,
+                           available_screennames = available )
 
 @app.route('/<screen_name>')
 def get_screen_name(screen_name):
-    if screen_name in gravitty.available():
-        graph_json = gravitty.load(screen_name)
-        return render_template('index.html', myjson = graph_json )
 
+    available = gravitty.available()
+    available.sort()
+
+    if screen_name in available or screen_name == '':
+        graph_json = gravitty.load(screen_name)
+        return render_template('index.html',
+                               myjson = graph_json,
+                               available_screennames = available )
+
+    else:
+        return render_template('does_not_exist.html',
+                               screen_name=screen_name,
+                               available_screennames = available )
 
 if __name__ == '__main__':
-    graph_json = gravitty.load('ZipfianAcademy')
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=80)
