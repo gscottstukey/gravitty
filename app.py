@@ -37,7 +37,7 @@ def get_screen_name(screen_name):
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         try:
-            port = int(argv[1])
+            port = int(sys.argv[1])
         except:
             print 'Port must be an integer'
             sys.exit(1)
