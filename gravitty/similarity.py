@@ -17,6 +17,38 @@ MENTION_OTHER_USER_WEIGHT = 10.
 
 
 def compute_similarity(user1_id, user1, user2_id, user2):
+    '''
+    Given the user ids and corresponding rows of data for two users, find a
+    weighted attraction score based on direct relationship metrics (e.g.
+    following each other, mentioning each other, etc.) as well as one step
+    removed latent factors, such as shared followers/friends, shared list
+    membership, shared references to hashtags, and shared mentions.
+
+    In essence this performs a weighted one-mode projection, treating
+    followers, friends, mentions, etc. as separate graph classes and projecting
+    common interests onto an undirected relationship between these two users.
+
+    The algorithm uses adjustable weights (see constants set above) to weigh
+    the relative importance of each type of common interest / relationship.
+    The default levels were set by my intuition without any empirical
+    evidence and can (should?) be adjusted.
+
+    This algorithm is naive in the sense that it does not correct for
+    common interests that have little information gain (e.g. two
+    users mentioning a mutual friend is more indicative of a close
+    relationship than mentioning @barackobama). Such a calculation would
+    require additional information (e.g. how many other people are
+    referencing @barackobama, not just in my set of users), which would
+    require a prohibitive number of api calls to ascertain.
+
+    user1_id: Integer
+    user1: Pandas Dataframe/Series containing user1's information.
+    user2_id: Integer
+    user2: Pandas Dataframe/Series containing user2's information.
+
+    return: Similarity score as a float
+    '''
+
 
     user1_follow_user2 = user2_id in user1['following']
     user2_follow_user1 = user2_id in user1['followers']
@@ -49,12 +81,31 @@ def compute_similarity(user1_id, user1, user2_id, user2):
 
 
 def make_similarity_dataframe(df):
+    '''
+    Performs a pair-wise latent similarity calculation on every pair of users
+    in the provided user dataframe. Produces a dataframe instead of a numpy
+    matrix for easier indexing by downstream functions.
+
+    See compute_similarity for additional details on how this score is
+    computed.
+
+    df: Pandas Dataframe. Should contain the parsed data produced from
+    parse_dataframe().
+
+    return: Pandas Dataframe indexed & columned by user_id. Similarity
+    scores are undirected.
+    '''
+
     similarity_df = pd.DataFrame(data=np.zeros([df.shape[0]]*2),
                                  index=df.index, columns=df.index)
+
     for i, user1_id in enumerate(df.index[:-1]):
+
         for user2_id in df.index[i+1:]:
+
             similarity = compute_similarity(user1_id, df.ix[user1_id, :],
                                             user2_id, df.ix[user2_id, :])
+
             similarity_df.ix[user1_id, user2_id] = similarity
             similarity_df.ix[user2_id, user1_id] = similarity
 

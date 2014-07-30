@@ -23,9 +23,15 @@ API_ARGS = {'list': {},
 
 
 def __traverse(in_dict, lookup):
+    '''
+    Traverse dictionary looking for keys in the lookup tuple, converting
+    values to a list of items.
+
+    Why? Because mongo doesn't like keys with periods in them and twitter
+    returns shortened urls and their destinations as key-value pairs.
+    '''
 
     d = in_dict.copy()
-
     for k, v in d.iteritems():
 
         if k in lookup and type(v) == dict:
@@ -38,10 +44,20 @@ def __traverse(in_dict, lookup):
 
 
 def __get_cache(db, followers):
+    '''
+    Mass collection of cached data. Get all documents from the database that
+    have an id in followers.
+
+    db: Mongodb database object.
+    followers: List of followers. Each element should be a user id integer.
+
+    return: Nested Dictionary with found/cached user_ids as parent keys.
+    Each user_id is mapped to a dictionary of data type - value pairs.
+    '''
 
     result = {}
 
-    curs = db.data.find({'id': {'$in': followers}})
+    curs = db.data.find({'id': {'$in': followers}}, timeout=False)
 
     for data in curs:
 
@@ -60,36 +76,63 @@ def __get_cache(db, followers):
 
 
 def __get_cache_for_user(db, user_id, cache_type):
+    '''
+    Query database for specific User ID and data type.
+
+    db: Mongo database object
+    user_id: Integer
+    cache_type: String
+
+    return: Data from cache (No specified type). If not in cache, returns None
+    '''
 
     if user_id:
-        coll = db.data
-        tmp = coll.find_one({'id': user_id, 'type': cache_type})
+        tmp = db.data.find_one({'id': user_id, 'type': cache_type})
         if tmp:
             return tmp['data']
     return None
 
 
 def __make_cache_for_user(db, data, user_id, cache_type):
-
-    coll = db.data
-    coll.update({'id': user_id, 'type': cache_type},
-                {'$set': {'data': data}},
-                upsert = True)
+    ''' Write data for user/type in database. Returns nothing. '''
+    db.data.update({'id': user_id, 'type': cache_type},
+                   {'$set': {'data': data}},
+                   upsert = True)
 
 
 def get_user_data_by_type(db, api, screen_name=None,
                           user_id=None, data_type=None, force=False):
+    '''
+    Get data for a specific user, for a specific data type. If force is
+    True, data will be pulled from twitter regardless of whether it has
+    previously been cached and will replace the cached data.
 
-    if force:
-        data = None
-    else:
-        data = __get_cache_for_user(db, user_id, data_type)
+    db: mongo database object
+    api: twitter api object
+    screen_name: String, Optional.
+    user_id: Integer, Optional if screen_name provided.
+    data_type: String. Data type to query for
+    force: Boolean. If true will query twitter regardless of whether cache
+    exists.
+
+    return: List/Dictionary based on data type selection.
+    '''
+
+    data = None if force else __get_cache_for_user(db, user_id, data_type)
 
     if data == None:
+        try:
+            # Ugly code. Since python will choke if we pass any api-specific
+            # methods (or declare them in a dict at the top of the page),
+            # we must resort to building up the function call as a string
+            # and evaluating it, otherwise this part of the function would
+            # contain a lot of if-else statements.
+            data = eval('api.' + API_CALLS[data_type] + \
+                        '(screen_name=screen_name, user_id=user_id, ' + \
+                        '**API_ARGS[data_type])')
 
-        data = eval('api.' + API_CALLS[data_type] + \
-                    '(screen_name=screen_name, user_id=user_id, ' + \
-                    '**API_ARGS[data_type])')
+        except twitter.error.TwitterError as e:
+            raise e
 
         if data_type == 'list':
             data = [__traverse(x.AsDict(), URLS) for x in data]
@@ -106,6 +149,24 @@ def get_user_data_by_type(db, api, screen_name=None,
 
 
 def get_user_data(db, api, name=None, uid=None, ctr=0, force=False):
+    '''
+    Get all data types for a given user. If user is protected/suspended,
+    returns None. If user has too many friends or followers, specified by
+    constants FOLLOWERS_CAP and FOLLOWING_CAP, respectively, returns None.
+    Without this constraint, rate limits are hit arbitrarily trying to query
+    friends/followers at 5k ID's per time (twitter api's limit).
+
+    db: Mongodb database object
+    api: Twitter api object
+    name: String. Screen name of user
+    uid: Integer. User ID.
+    ctr: Rate Limit Retry Counter. Do not use.
+    force: Boolean. If true will query twitter regardless of whether cache
+    exists.
+
+    return: tuple of lists/dictionaries or None
+    '''
+
 
     try:
         target = get_user_data_by_type(db, api, screen_name=name,
@@ -154,7 +215,20 @@ def get_user_data(db, api, name=None, uid=None, ctr=0, force=False):
 
 
 def get_follower_data(db, apis, followers, force=False):
+    '''
+    Get all data for all follower ids passed in followers.
 
+    db: mongodb database object
+    apis: list of twitter API objects to be used in a round-robin fashion
+    for each download
+    followers: list of user ids
+    force: Boolean. If true will query twitter regardless of whether cache
+    exists.
+
+    return: Pandas Dataframe containing the raw info, tweets, followers,
+    following, and list returned from cache/twitter. Dataframe is indexed by
+    user_id.
+    '''
     num_apis = len(apis)
 
     num_followers = len(followers)
@@ -170,17 +244,28 @@ def get_follower_data(db, apis, followers, force=False):
         if uid in result:
             if len(result[uid].keys()) == 5:
                 continue
+        else:
+            result[uid] = {}
 
-        print ind + 1, 'of', num_followers, '. On id:', uid
+        print uid, ind + 1, 'of', num_followers
 
         n = ind % num_apis
 
         user_data = get_user_data(db, apis[n], uid=uid, force=force)
 
-        result[uid] = user_data
+        if user_data is not None:
+            result[uid]['info'] = user_data[0]
+            result[uid]['tweets'] = user_data[1]
+            result[uid]['followers'] = user_data[2]
+            result[uid]['following'] = user_data[3]
+            result[uid]['list'] = user_data[4]
+        else:
+            del result[uid]
 
-    # transpose so that user_id are rows and columns are the fields
-    # dropna() will remove users that had protected or overly large
-    # follower/friends lists. It will NOT remove users width no tweets / no
-    # lists
-    return pd.DataFrame(data=result).transpose().dropna()
+    # Dropna() will not drop fields that are empty, but not blank (e.g.
+    # someone who is not a part of any list membership will not be dropped).
+    try:
+        return pd.DataFrame(result).transpose().dropna()
+
+    except ValueError:
+        return pd.DataFrame().from_dict(result, orient='index').dropna()

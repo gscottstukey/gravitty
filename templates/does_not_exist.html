@@ -30,8 +30,32 @@
           </button>
           <a class="navbar-brand" href="#">Gravitty</a>
         </div>
+
       </div>
     </nav>
+
+    <div class="container-fluid" id="screenname-table">
+      <div class="dropdown">
+        <button class="btn btn-default dropdown-toggle"
+                type="button"
+                id="dropdownMenu1"
+                data-toggle="dropdown">@Examples<span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu"
+            role="menu"
+            aria-labelledby="dropdownMenu1">
+
+          {% for avail in available_screennames %}
+            <li role="presentation">
+              <a role="menuitem"
+                 tabindex="-1"
+                 href="/{{avail}}">@{{avail}}</a>
+            </li>
+          {% endfor %}
+
+        </ul>
+      </div>
+    </div>
 
     <div class="container-fluid" id="screenname-table">
       @{{screen_name}} has not been created yet.

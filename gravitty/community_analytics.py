@@ -7,6 +7,11 @@ import happy
 import d3py
 
 def __extract_tweets(df):
+    '''
+    df: Pandas dataframe. Must contain 'tweets' column
+
+    return: Flattened list of lower-case, unicode-safe tweets
+    '''
 
     twts = df['tweets'].apply(list).tolist()
 
@@ -17,12 +22,25 @@ def __extract_tweets(df):
 
 
 def get_topics(df, stops=set(), tweets=None, num=5):
+    '''
+    Find latent topics from tweets in dataframe.
+
+    df: Pandas dataframe. Must contain 'tweets' column. (Optional if tweets)
+    stops: Set including stop words to be removed during tokenization.
+    tweets: List of tweets (str). (Optional if df)
+    num: Integer. Number of topics to return.
+
+    return: List of (word, score) tuples from LDA topic model.
+    '''
 
     if tweets == None:
         tweets = __extract_tweets(df)
 
     tweets = gl.SArray(data=tweets, dtype=str)
 
+    # Graphlab utilizes a list of dicts where the tokenized words are keys
+    # and their values are their counts in each doc. count_words()
+    # accomplishes this and dict_trim_by_keys removes stop words.
     tweets = tweets.count_words().dict_trim_by_keys(keys=stops)
 
     model = gl.text.topic_model.create(dataset = tweets, num_topics = num)
@@ -39,11 +57,16 @@ def get_topics(df, stops=set(), tweets=None, num=5):
 
 
 def get_hashtags(df, num=5):
+    '''
+    Finds the most frequently used hashtags.
+
+    df: Pandas dataframe. Must contain 'hashtags' column.
+    num: Integer. Limits the number of most frequently used hashtags.
+
+    return: List of lower-cased hashtags (does not prefix #).
+    '''
 
     hashtags = reduce(lambda x, y: x + y, df['hashtags'].apply(list).tolist())
-
-    #hashtags = [''.join([str(x).lower() if ord(x) < 128 else '' for x in ht])
-    #            for ht in hashtags]
 
     hashtags = sorted([(hashtags.count(x), '#' + x) for x in set(hashtags)],
                       reverse=True)
@@ -52,6 +75,14 @@ def get_hashtags(df, num=5):
 
 
 def get_mentions(df, num=5):
+    '''
+    Find the most frequently mentioned user ids
+
+    df: Pandas dataframe. Must contain 'mentions' column
+    num: Integer. Limits the number of most frequently mentioned users
+
+    return: List of most frequently mentioned user ids as integers
+    '''
 
     mentions = reduce(lambda x, y: x + y, df['mentions'].apply(list).tolist())
 
@@ -62,11 +93,25 @@ def get_mentions(df, num=5):
 
 
 def get_density(subgraph):
+    '''
+    subgraph: Networkx Graph object
+
+    return: Density of graph
+    '''
 
     return nx.density(subgraph)
 
 
 def get_most_connected(subgraph, num=5):
+    '''
+    Find the most influential nodes using the NetworkX's pagerank algorithm.
+
+    subgraph: Networkx Graph object
+    num: Limit number of most influential nodes returned
+
+    return: Node IDs of most influential nodes. Returns None if pagerank
+    fails to converge.
+    '''
 
     try:
         pr = nx.pagerank(subgraph)
@@ -80,6 +125,16 @@ def get_most_connected(subgraph, num=5):
 
 
 def get_sentiment(df, tweets=None):
+    '''
+    Find the (very simple) sentiment of a group of tweets using word score.
+    Closer to 1 means sad and closer to 9 means happy. Around 5.5 indicates
+    neutral.
+
+    df: Pandas dataframe. Must contain 'tweets' column. (Optional if tweets)
+    tweets: List of tweets (str). (Optional if df).
+
+    return: Tuple of (mean, standard dev) of scores.
+    '''
 
     if tweets == None:
         tweets = __extract_tweets(df)
@@ -91,13 +146,30 @@ def get_sentiment(df, tweets=None):
 
 def get_community_analytics(df, graph, num_levels, detail=3,
                             community_modularity=None):
+    '''
+    Returns various trends, topics, statistics, and sentiment for each
+    community.
+
+    df: Pandas Dataframe. Must contain tweets, mentions, and hashtags as
+    column names.
+    graph: Networkx graph object.
+    num_levels: Number of levels returned from community detection dendrogram
+    detail: Number of items (topics, hashtags, mentions, etc.) to be returned.
+    community_modularity: Dictionary of int(community level): float(
+    modularity) as a key,value pair. Optional.
+
+    return: Returns a nested dictionary with community level (int) as the
+    first level, community id (int) as the second level, and the community
+    statistics/information as the third level.
+    '''
 
     stops = gl.text.util.stopwords(lang='en')
 
-    # extra stop words, mostly for rt, url links, unicode, and compound words
+    # extra stop words, mostly for rt, url links, unicode, and compound words.
     stops.update(['rt', 'http', 'https', 'ly', 'amp', 'don', 'wasn', 're',
                   'aren', 'didn', 'how', 'nt', 'co', 've', 'gt', 'll',
                   'bit'])
+
     # get rid of arbitrary single numbers
     stops.update(map(str, range(11)))
 
@@ -146,7 +218,20 @@ def get_community_analytics(df, graph, num_levels, detail=3,
 
 
 def get_community_assignment(in_df, graph, dendrogram):
+    '''
+    Utilize dendrogram to find community clusterings at every level
+    available. For each hierarchy level, a new column is added to the
+    returned df with the community clustering. (e.g. cid0 -> 0,0,1,2,3)
 
+    in_df: Dataframe. Must be indexed by user_id.
+    graph: Networkx Graph. Node IDs should match user_ids in dataframe
+    dendrogram: List of dictionaries, each dictionary mapping user_id to
+    community_id. Each dictionary should represent a level of the clustering
+    hierarchy.
+
+    return: Tuple of Dataframe with community id assignment columns added
+    and dictionary mapping each level to community modularity (float)
+    '''
     df = in_df.copy()
 
     community_modularity = {}
@@ -155,7 +240,11 @@ def get_community_assignment(in_df, graph, dendrogram):
 
         partition = partition_at_level(dendrogram, i)
 
-        df['cid' + str(i)] = [partition[ind] for ind in df.index]
+        # Infrequently, the community detection algorithm will exclude (?) a
+        # a user ID or two. Still investgating why. For now, these will be
+        # placed into partition 0.
+        df['cid' + str(i)] = [partition[ind] if ind in partition else 0
+                              for ind in df.index]
 
         community_modularity[i] = modularity(partition, graph)
 
@@ -163,7 +252,18 @@ def get_community_assignment(in_df, graph, dendrogram):
 
 
 def create_community_graph(data, dendrogram):
+    '''
+    Creates an undirected, unweighted Networkx graph where each node
+    represents detected communities. Data from community analytics function is
+    appended to nodes as attributes.
 
+    data: Nested dictionary returned from community_analytics function
+    dendrogram: List of dictionaries, each dictionary mapping user_id to
+    community_id. Each dictionary should represent a level of the clustering
+    hierarchy.
+
+    return: NetworkX Graph object
+    '''
     g = nx.DiGraph()
 
     for i in data:
@@ -187,6 +287,24 @@ def create_community_graph(data, dendrogram):
 
 
 def create_community_json(graph, user_info):
+    '''
+    Creates a json representation for a given graph. Intended to be used
+    with d3.js for visual represenation of community graph.
+
+    Utilizes d3py library (a requirement for this library) to create JSON
+    object. d3py reference material be found here:
+    https://github.com/mikedewar/d3py
+
+    graph: NetworkX object. Does not need to necessary follow a particular
+    structure, but function is intended for use with graphs created by
+    create_community_graph function.
+
+    user_info: Dictionary containing target user details. Should contain all
+    items found by converting a twitter user status object to a dictonary.
+
+    return: dictionary/json containing all data from graph in node elements
+    and all information from user_info in key named 'root'.
+    '''
 
     community_json = d3py.json_graph.node_link_data(graph)
 

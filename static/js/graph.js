@@ -2,17 +2,14 @@ var width = 960, height = 500;
 
 var color = d3.scale.category20();
 
-// var svg = d3.select("div#graph").append("svg")
-//     .attr("width", width)
-//     .attr("height", height);
 var svg = d3.select("svg#chart");
 
 var force = d3.layout.force()
     .nodes(graph.nodes)
     .links(graph.links)
     .size([width, height])
-    .linkDistance(30)
-    .charge(-120)
+    .linkDistance(25)
+    .charge(-2000)
     .on("tick", tick)
     .start();
 
@@ -27,8 +24,8 @@ var node = svg.selectAll(".node")
     .enter().append("circle")
         .attr("class", "node")
         .attr("name", function(d) { return d.name; })
-        .attr("r", function(d) { return Math.max(5, d.comm_size / graph
-        .root['followers_count'] * 30); })
+        .attr("r", function(d) { return Math.max(10, d.comm_size / graph
+        .root['followers_count'] * 50); })
         .style("fill", function(d) { return color(d.group); })
         .call(force.drag);
 
@@ -42,26 +39,43 @@ function tick() {
         .attr("y1", function(d) { return d.source.y; })
         .attr("x2", function(d) { return d.target.x; })
         .attr("y2", function(d) { return d.target.y; });
-
     node.attr("cx", function(d) { return d.x; })
         .attr("cy", function(d) { return d.y; });
 }
 
+node.on('mouseover', function(d) {
+    d3.select(this).style("stroke", 'red');
+})
+
+node.on('mouseout', function(d) {
+    d3.select(this).style("stroke", color(d.group));
+})
+
+
+node.on('click', function(d) {
+
+    d3.selectAll('.active')
+        .style('fill', function (d) { return color(d.group) })
+        .classed("active", false);
+
+    d3.select(this)
+        .classed("active", true)
+        .style('fill', 'red');
+});
 
 $(document).ready(function(){
-
     var obj = graph.root
-
-    $("span.id").text('@' + obj['screen_name'])
+    //$("span.id").text('@' + obj['screen_name'])
     $("span.name").text(obj['name_'])
     $("span.description").text(obj['description'])
     $("span.followers_count").text(obj['followers_count'])
     $("span.friends_count").text(obj['friends_count'])
-
 });
 
 $(document).ready(function(){
     $("circle.node").click(function(){
+
+        $(this)[0]['attributes'][5]
 
         var obj = $(this)[0]['__data__']
 
@@ -91,9 +105,9 @@ $(document).ready(function(){
             $("span.topics").append(topics.join('-') + '<br>')
         })
 
-        if(obj["sentiment"][0] > 6.5) {
+        if(obj["sentiment"][0] > 5.6) {
             $("span.sentiment").text("Happy")
-        } else if(obj["sentiment"][0] < 4.5) {
+        } else if(obj["sentiment"][0] < 5.4) {
             $("span.sentiment").text("Sad")
         } else {
             $("span.sentiment").text("Neutral")

@@ -2,6 +2,17 @@
 import networkx as nx
 
 def make_graph(df, df_similarity=None):
+    '''
+    Creates an undirected graph based the users found in df. If a similarity
+    dataframe is passed, a weighted graph is returned based on these
+    similarities.
+
+    df: Pandas dataframe. Must be indexed by user id.
+    df_similarity: Square dataframe with user ids as its index and columns.
+    Values should be integers or floats.
+
+    return: Undirected Networkx graph object.
+    '''
 
     g = nx.Graph()
 

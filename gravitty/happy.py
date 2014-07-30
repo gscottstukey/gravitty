@@ -5,6 +5,32 @@ import os
 SPECIAL_CHARS = ['.', ',', '!', '?', '\n', '+', '*', '-', '#', '@']
 
 def hi(corpus, lower=3, upper=7):
+    '''
+    Finds the sentiment for each document from the corpus using wordscore.
+    Wordscore is a simplistic approach to sentiment analysis, rating each
+    word on a range from 1 to 9, 1 being very sad, 9 being very happy.
+
+    Requires a 'words'folder to be placed in the same directory as this
+    file. The words directory should contain a csv file for all words and
+    another csv with all corresponding sentiment scores.
+
+    These files are for english with this project. Files for other
+    languages can be downloaded at
+    http://www.uvm.edu/storylab/share/papers/dodds2014a/data.html. Be sure
+    to change the LANG parameter (hardcoded for the sake of this project) if
+    you choose to use a different language.
+
+    This code is incorporate with license (see license_happy.txt) from
+    https://github.com/luisgustavoneves/happy.
+
+    corpus: List of documents (as strings).
+    lower: Words having a score below this bound will be considered. This
+    prevents words without strong sentiment from being included in the
+    sentiment scores.
+    upper: Words having a score above this bound will be considered.
+
+    return: Average sentiment per document, one per document.
+    '''
 
     LANG = 'english'
 
@@ -42,6 +68,6 @@ def hi(corpus, lower=3, upper=7):
         if f > 0:
             sentiment.append(h/f)
 
-        # else no word found in wordlist, maybe l and u too restrictive
+        # else no word found in wordlist, maybe lower/upper are too restrictive
 
     return sentiment

@@ -6,9 +6,9 @@ def oauth_login(api_key_file):
     '''
     Login to twitter using oauth login credentials stored in a file.
 
-    api_key_file: File object or path to directory/file Object as String
+    api_key_file: File object or path to directory | file Object as String
 
-    return: twitter.Api object oauth login
+    return: List of twitter.Api object oauth login
     '''
 
     if type(api_key_file) == str:

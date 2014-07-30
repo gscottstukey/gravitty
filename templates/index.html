@@ -21,27 +21,50 @@
         <div class="navbar-header">
           <a class="navbar-brand" href="#">Gravitty</a>
         </div>
+      </div>
   </nav>
 
   <div class="container-fluid" id="screenname-table">
-    <div class="table-responsive">
+    <div class=".col-md-4">
+      <div class="dropdown">
+        <button class="btn btn-default dropdown-toggle"
+                type="button"
+                id="dropdownMenu1"
+                data-toggle="dropdown">@Examples<span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu"
+            role="menu"
+            aria-labelledby="dropdownMenu1">
+          {% for avail in available_screennames %}
+            <li role="presentation">
+              <a role="menuitem"
+                 tabindex="-1"
+                 href="/{{avail}}">@{{avail}}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div class=".col-md-8">
+      <div class="table-responsive">
         <table class="table">
             <tr>
-                <th>Screen Name</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Followers</th>
-                <th>Following</th>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Followers</th>
+              <th>Following</th>
             </tr>
             <tr>
-                <td><span class = "id"></span></td>
-                <td><span class = "name"></span></td>
-                <td><span class = "description"></span></td>
-                <td><span class = "followers_count"></span></td>
-                <td><span class = "friends_count"></span></td>
+              <td><span class = "name"></span></td>
+              <td><span class = "description"></span></td>
+              <td><span class = "followers_count"></span></td>
+              <td><span class = "friends_count"></span></td>
             </tr>
         </table>
+      </div>
     </div>
+
   </div>
 
   <div class="container-fluid" id="graph">
